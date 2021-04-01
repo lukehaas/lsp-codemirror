@@ -4,7 +4,6 @@ import debounce from 'lodash-es/debounce';
 import * as lsProtocol from 'vscode-languageserver-protocol';
 import { Location, LocationLink, MarkupContent } from 'vscode-languageserver-protocol';
 import { getFilledDefaults, IEditorAdapter, ILspConnection, IPosition, ITextEditorOptions, ITokenInfo } from './types';
-import 'setimmediate';
 import Rect from './icons/rect.svg'
 import Tri from './icons/tri.svg'
 import Circle from './icons/circle.svg'
@@ -25,6 +24,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private signatureWidget: CodeMirror.LineWidget;
 	private token: ITokenInfo;
 	private markedDiagnostics: CodeMirror.TextMarker[] = [];
+	private diagnosticResults: ITokenInfo[] = [];
 	private highlightMarkers: CodeMirror.TextMarker[] = [];
 	private hoverCharacter: IPosition;
 	private debouncedGetHover: (position: IPosition) => void;
@@ -41,10 +41,32 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editor = editor;
 
 		this.debouncedGetHover = debounce((position: IPosition) => {
-			this.connection.getHoverTooltip(position);
+			// this.connection.getHoverTooltip(position);
+			this._removeHover();
+			this._removeTooltip();
+			this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
+				if (position.line === diagnostic.start.line || position.line === diagnostic.end.line) {
+					if (position.ch >= diagnostic.start.ch && position.ch <= diagnostic.end.ch) {
+						const htmlElement = document.createElement('div');
+						htmlElement.innerText = diagnostic.text;
+						const coords = this.editor.charCoords(diagnostic.start, 'page');
+						this._showTooltip(htmlElement, {
+							x: coords.left,
+							y: coords.top,
+						});
+					}
+				}
+			});
 		}, this.options.quickSuggestionsDelay);
 
 		this._addListeners();
+	}
+
+	public updateOptions(options: ITextEditorOptions) {
+		this.options = getFilledDefaults(options);
+		if (!this.options.enableDiagnostics) {
+			this._clearDiagnostics();
+		}
 	}
 	
 	public handleMouseLeave() {
@@ -53,7 +75,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 	
 	public handleMouseOver(ev: MouseEvent) {
-		if (!this._isEventInsideVisible(ev) || !this._isEventOnCharacter(ev)) {
+		if (!this._isEventOnCharacter(ev)) {
+			return;
+		}
+		if (!this._isEventInsideVisible(ev)) {
+			this._removeHover();
+			this._removeTooltip();
 			return;
 		}
 
@@ -117,64 +144,63 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this._removeTooltip();
 	}
 
-	public handleHover(response: lsProtocol.Hover) {
-		this._removeHover();
-		this._removeTooltip();
+	// public handleHover(response: lsProtocol.Hover) {
+	// this._removeHover();
+	// this._removeTooltip();
+	// 	if (!response || !response.contents || (Array.isArray(response.contents) && response.contents.length === 0)) {
+	// 		return;
+	// 	}
 
-		if (!response || !response.contents || (Array.isArray(response.contents) && response.contents.length === 0)) {
-			return;
-		}
+	// 	let start = this.hoverCharacter;
+	// 	let end = this.hoverCharacter;
+	// 	if (response.range) {
+	// 		start = {
+	// 			line: response.range.start.line,
+	// 			ch: response.range.start.character,
+	// 		} as CodeMirror.Position;
+	// 		end = {
+	// 			line: response.range.end.line,
+	// 			ch: response.range.end.character,
+	// 		} as CodeMirror.Position;
 
-		let start = this.hoverCharacter;
-		let end = this.hoverCharacter;
-		if (response.range) {
-			start = {
-				line: response.range.start.line,
-				ch: response.range.start.character,
-			} as CodeMirror.Position;
-			end = {
-				line: response.range.end.line,
-				ch: response.range.end.character,
-			} as CodeMirror.Position;
+	// 		this.hoverMarker = this.editor.getDoc().markText(start, end, {
+	// 			className: 'CodeMirror-lsp-hover'
+	// 		});
+	// 	}
 
-			this.hoverMarker = this.editor.getDoc().markText(start, end, {
-				className: 'CodeMirror-lsp-hover'
-			});
-		}
+	// 	let tooltipText: string;
+	// 	if (MarkupContent.is(response.contents)) {
+	// 		tooltipText = response.contents.value;
+	// 	} else if (Array.isArray(response.contents)) {
+	// 		const firstItem = response.contents[0];
+	// 		if (MarkupContent.is(firstItem)) {
+	// 			tooltipText = firstItem.value;
+	// 		} else if (firstItem === null) {
+	// 			return;
+	// 		} else if (typeof firstItem === 'object') {
+	// 			tooltipText = firstItem.value;
+	// 		} else {
+	// 			tooltipText = firstItem;
+	// 		}
+	// 	} else if (typeof response.contents === 'string') {
+	// 		tooltipText = response.contents;
+	// 	}
 
-		let tooltipText: string;
-		if (MarkupContent.is(response.contents)) {
-			tooltipText = response.contents.value;
-		} else if (Array.isArray(response.contents)) {
-			const firstItem = response.contents[0];
-			if (MarkupContent.is(firstItem)) {
-				tooltipText = firstItem.value;
-			} else if (firstItem === null) {
-				return;
-			} else if (typeof firstItem === 'object') {
-				tooltipText = firstItem.value;
-			} else {
-				tooltipText = firstItem;
-			}
-		} else if (typeof response.contents === 'string') {
-			tooltipText = response.contents;
-		}
-
-		const htmlElement = document.createElement('div');
-		htmlElement.innerText = tooltipText;
-		const coords = this.editor.charCoords(start, 'page');
-		this._showTooltip(htmlElement, {
-			x: coords.left,
-			y: coords.top,
-		});
-	}
+	// 	const htmlElement = document.createElement('div');
+	// 	htmlElement.innerText = tooltipText;
+	// 	const coords = this.editor.charCoords(start, 'page');
+	// 	this._showTooltip(htmlElement, {
+	// 		x: coords.left,
+	// 		y: coords.top,
+	// 	});
+	// }
 
 	public handleHighlight(items: lsProtocol.DocumentHighlight[]) {
 		this._highlightRanges((items || []).map((i) => i.range));
 	}
 
 	public handleCompletion(completions: lsProtocol.CompletionItem[]): void {
-		if (!this.token) {
+		if (!this.token || !this.options.suggest) {
 			return;
 		}
 
@@ -198,10 +224,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 								const con = document.createElement('div')
 								con.classList.add('CodeMirror-lsp-hint')
 								const text = document.createElement('span')
-								const img = document.createElement('img')
 								text.innerText = label
-								img.src = this._getIconByKind(kind)
-								con.append(img)
+								if (this.options.iconsInSuggestions) {
+									const img = document.createElement('img')
+									img.src = this._getIconByKind(kind)
+									con.append(img)
+								}
 								con.append(text)
 								element.append(con)
 							}
@@ -223,12 +251,17 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				return SmallRect
 		}
 	}
-	public handleDiagnostic(response: lsProtocol.PublishDiagnosticsParams) {
+	private _clearDiagnostics() {
 		this.editor.clearGutter('CodeMirror-lsp');
 		this.markedDiagnostics.forEach((marker) => {
 			marker.clear();
 		});
 		this.markedDiagnostics = [];
+		this.diagnosticResults = [];
+	}
+	public handleDiagnostic(response: lsProtocol.PublishDiagnosticsParams) {
+		if (!this.options.enableDiagnostics) return;
+		this._clearDiagnostics();
 		CodeMirror.signal(this.editor,'lsp/diagnostics', response.diagnostics)
 		response.diagnostics.forEach((diagnostic: lsProtocol.Diagnostic) => {
 			const start = {
@@ -241,14 +274,20 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			} as CodeMirror.Position;
 
 			this.markedDiagnostics.push(this.editor.getDoc().markText(start, end, {
-				title: diagnostic.message,
-				className: 'cm-error',
+				className: this.options.diagnosticMarkClassName,
 			}));
+			this.diagnosticResults.push({
+				text: diagnostic.message,
+				start,
+				end,
+			})
 
-			const childEl = document.createElement('div');
-			childEl.classList.add('CodeMirror-lsp-guttermarker');
-			childEl.title = diagnostic.message;
-			this.editor.setGutterMarker(start.line, 'CodeMirror-lsp', childEl);
+			if (this.options.enableGutterMarks) {
+				const childEl = document.createElement('div');
+				childEl.classList.add('CodeMirror-lsp-guttermarker');
+				childEl.title = diagnostic.message;
+				this.editor.setGutterMarker(start.line, 'CodeMirror-lsp', childEl);
+			}
 		});
 	}
 
@@ -319,7 +358,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editor.off('change', this.editorListeners.change);
 		this.editor.off('cursorActivity', this.editorListeners.cursorActivity);
 		this.editor.getWrapperElement().removeEventListener('mousemove', this.editorListeners.mouseover);
-		this.editor.getWrapperElement().removeEventListener('contextmenu', this.editorListeners.contextmenu);
+		if (this.options.enableContextMenu) {
+			this.editor.getWrapperElement().removeEventListener('contextmenu', this.editorListeners.contextmenu);
+		}
 		Object.keys(this.connectionListeners).forEach((key) => {
 			this.connection.off(key as any, this.connectionListeners[key]);
 		});
@@ -335,12 +376,13 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 		const self = this;
 		this.connectionListeners = {
-			hover: this.handleHover.bind(self),
-			highlight: this.handleHighlight.bind(self),
+			// hover: this.handleHover.bind(self),
+			// highlight: this.handleHighlight.bind(self),
+			
 			completion: this.handleCompletion.bind(self),
-			signature: this.handleSignature.bind(self),
+			// signature: this.handleSignature.bind(self),
 			diagnostic: this.handleDiagnostic.bind(self),
-			goTo: this.handleGoTo.bind(self),
+			// goTo: this.handleGoTo.bind(self),
 		};
 
 		Object.keys(this.connectionListeners).forEach((key) => {
@@ -363,16 +405,17 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editor.getWrapperElement().addEventListener('mousemove', mouseOverListener);
 		this.editorListeners.mouseover = mouseOverListener;
 
-		const debouncedCursor = debounce(() => {
-			this.connection.getDocumentHighlights(this.editor.getDoc().getCursor('start'));
-		}, this.options.quickSuggestionsDelay);
+		// const debouncedCursor = debounce(() => {
+		// 	this.connection.getDocumentHighlights(this.editor.getDoc().getCursor('start'));
+		// }, this.options.quickSuggestionsDelay);
 
-		const rightClickHandler = this._handleRightClick.bind(this);
-		this.editor.getWrapperElement().addEventListener('contextmenu', rightClickHandler);
-		this.editorListeners.contextmenu = rightClickHandler;
-
-		this.editor.on('cursorActivity', debouncedCursor);
-		this.editorListeners.cursorActivity = debouncedCursor;
+		if (this.options.enableContextMenu) {
+			const rightClickHandler = this._handleRightClick.bind(this);
+			this.editor.getWrapperElement().addEventListener('contextmenu', rightClickHandler);
+			this.editorListeners.contextmenu = rightClickHandler;
+		}
+		// this.editor.on('cursorActivity', debouncedCursor);
+		// this.editorListeners.cursorActivity = debouncedCursor;
 
 		const clickOutsideListener = this._handleClickOutside.bind(this);
 		document.addEventListener('click', clickOutsideListener);

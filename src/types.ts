@@ -244,6 +244,26 @@ export interface ITextEditorOptions {
    * Defaults to false.
    */
 	formatOnPaste?: boolean;
+	/**
+   * className for diagnostic marks
+   * Defaults to 'cm-error'
+   */
+	diagnosticMarkClassName?: string;
+	/**
+   * Enable context menu
+   * Defaults to true
+   */
+	enableContextMenu?: boolean;
+	/**
+   * Enable gutter marks
+   * Defaults to true
+   */
+	enableGutterMarks?: boolean;
+	/**
+   * Enable diagnostics
+   * Defaults to true
+   */
+	enableDiagnostics?: boolean;
 }
 
 export interface ILspOptions {
@@ -287,5 +307,9 @@ export function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptio
 		iconsInSuggestions: true,
 		formatOnType: false,
 		formatOnPaste: false,
+		diagnosticMarkClassName: 'cm-error',
+		enableContextMenu: true,
+		enableGutterMarks: true,
+		enableDiagnostics: true,
 	}, options);
 }
