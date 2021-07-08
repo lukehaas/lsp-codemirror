@@ -353,6 +353,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this._removeSignatureWidget();
 		this._removeHover();
 		this._removeTooltip();
+		this._clearDiagnostics();
 		// Show-hint addon doesn't remove itself. This could remove other uses in the project
 		this.editor.getWrapperElement().querySelectorAll('.CodeMirror-hints').forEach((e) => e.remove());
 		this.editor.off('change', this.editorListeners.change);

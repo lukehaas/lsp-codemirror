@@ -81,7 +81,7 @@ class LspWsConnection extends events.EventEmitter implements ILspConnection {
 				});
 
 				this.connection.onError((e) => {
-					this.emit('error', e);
+					this.emit('logging', e);
 				});
 
 				this.connection.onClose(() => {
