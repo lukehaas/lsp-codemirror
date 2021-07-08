@@ -21,7 +21,7 @@ interface IFilesServerClientCapabilities {
 type ExtendedClientCapabilities = lsProtocol.ClientCapabilities & IFilesServerClientCapabilities;
 
 class LspWsConnection extends events.EventEmitter implements ILspConnection {
-	private isConnected = false;
+	public isConnected = false;
 	private isInitialized = false;
 	private socket: WebSocket;
 	private documentInfo: ILspOptions;
@@ -416,7 +416,7 @@ public getReferences(location: IPosition) {
    */
 public getLanguageCompletionCharacters(): string[] {
 	if (!this.isConnected) {
-		return;
+		return [];
 	}
 	if (!(
 		this.serverCapabilities &&
@@ -433,7 +433,7 @@ public getLanguageCompletionCharacters(): string[] {
    */
 public getLanguageSignatureCharacters(): string[] {
 	if (!this.isConnected) {
-		return;
+		return [];
 	}
 	if (!(
 		this.serverCapabilities &&

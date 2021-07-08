@@ -35,3 +35,5 @@ const javascriptAdapter = new CodeMirrorAdapter(javascriptConnection, {
 ```
 
 All options for CodeMirrorAdapter in: https://github.com/marc2332/lsp-codemirror/blob/aed38cc89e992b0b9aa7ee91cd298a4607a87b60/src/types.ts#L144
+
+To support Codemirror 6 - use https://github.com/FurqanSoftware/codemirror-languageserver
