@@ -1,9 +1,10 @@
 /// <reference types="@types/codemirror" />
 
 import debounce from 'lodash-es/debounce';
+import isEqual from 'lodash-es/isEqual';
 import * as lsProtocol from 'vscode-languageserver-protocol';
 import { Location, LocationLink, MarkupContent } from 'vscode-languageserver-protocol';
-import { getFilledDefaults, IEditorAdapter, ILspConnection, IPosition, ITextEditorOptions, ITokenInfo } from './types';
+import { getFilledDefaults, IEditorAdapter, ILspConnection, IPosition, ITextEditorOptions, ITokenInfo, ICompletionTokenInfo } from './types';
 import Rect from './icons/rect.svg'
 import Tri from './icons/tri.svg'
 import Circle from './icons/circle.svg'
@@ -22,7 +23,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 	private hoverMarker: CodeMirror.TextMarker;
 	private signatureWidget: CodeMirror.LineWidget;
-	private token: ITokenInfo;
+	private token: ICompletionTokenInfo;
 	private markedDiagnostics: CodeMirror.TextMarker[] = [];
 	private diagnosticResults: ITokenInfo[] = [];
 	private highlightMarkers: CodeMirror.TextMarker[] = [];
@@ -47,8 +48,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
 				if (position.line === diagnostic.start.line || position.line === diagnostic.end.line) {
 					if (position.ch >= diagnostic.start.ch && position.ch <= diagnostic.end.ch) {
-						const htmlElement = document.createElement('div');
-						htmlElement.innerText = diagnostic.text;
+						const htmlElement = document.createElement('ul');
+						htmlElement.innerHTML = diagnostic.text.map(text => `<li>${text}</li>`).join('');
+
 						const coords = this.editor.charCoords(diagnostic.start, 'page');
 						this._showTooltip(htmlElement, {
 							x: coords.left,
@@ -70,8 +72,8 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 	
 	public handleMouseLeave() {
-		this._removeHover();
-		this._removeTooltip();
+		// this._removeHover();
+		// this._removeTooltip();
 	}
 	
 	public handleMouseOver(ev: MouseEvent) {
@@ -276,11 +278,17 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			this.markedDiagnostics.push(this.editor.getDoc().markText(start, end, {
 				className: this.options.diagnosticMarkClassName,
 			}));
-			this.diagnosticResults.push({
-				text: diagnostic.message,
-				start,
-				end,
-			})
+
+			const duplicateIndex = this.diagnosticResults.findIndex(result => isEqual(result.start, start) && isEqual(result.end, end));
+			if (duplicateIndex > -1) {
+				this.diagnosticResults[duplicateIndex].text.push(diagnostic.message);
+			} else {
+				this.diagnosticResults.push({
+					text: [diagnostic.message],
+					start,
+					end,
+				});
+			}
 
 			if (this.options.enableGutterMarks) {
 				const childEl = document.createElement('div');
@@ -427,7 +435,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.documentListeners.clickInside = clickInsideListener;
 	}
 
-	private _getTokenEndingAtPosition(code: string, location: IPosition, splitCharacters: string[]): ITokenInfo {
+	private _getTokenEndingAtPosition(code: string, location: IPosition, splitCharacters: string[]): ICompletionTokenInfo {
 		const lines = code.split('\n');
 		const line = lines[location.line];
 		const typedCharacter = line[location.ch - 1];
@@ -621,6 +629,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 
 		let top = coords.y - this.editor.defaultTextHeight();
+		const altTop = coords.y + this.editor.defaultTextHeight();
 
 		this.tooltip = document.createElement('div');
 		this.tooltip.classList.add('CodeMirror-lsp-tooltip');
@@ -635,7 +644,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			top -= this.tooltip.offsetHeight;
 
 			this.tooltip.style.left = `${coords.x}px`;
-			this.tooltip.style.top = `${top}px`;
+			this.tooltip.style.top = top < 0 ? `${altTop}px` : `${top}px`;
 		});
 		
 		this.isShowingContextMenu = true

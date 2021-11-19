@@ -4,7 +4,7 @@ import * as events from 'events';
 import * as lsProtocol from 'vscode-languageserver-protocol';
 import { LocationLink, ServerCapabilities } from 'vscode-languageserver-protocol';
 import { registerServerCapability, unregisterServerCapability } from './server-capability-registration';
-import { ILspConnection, ILspOptions, IPosition, ITokenInfo } from './types';
+import { ILspConnection, ILspOptions, IPosition, ITokenInfo, ICompletionTokenInfo } from './types';
 
 interface IFilesServerClientCapabilities {
 	/* ... all fields from the base ClientCapabilities ... */
@@ -225,7 +225,7 @@ public getHoverTooltip(location: IPosition) {
 
 public getCompletion(
 	location: IPosition,
-	token: ITokenInfo,
+	token: ICompletionTokenInfo,
 	triggerCharacter?: string,
 	triggerKind?: lsProtocol.CompletionTriggerKind,
 ) {

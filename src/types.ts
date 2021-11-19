@@ -6,10 +6,16 @@ export interface IPosition {
 	ch: number;
 }
 
-export interface ITokenInfo {
+export interface ICompletionTokenInfo {
 	start: IPosition;
 	end: IPosition;
 	text: string;
+}
+
+export interface ITokenInfo {
+	start: IPosition;
+	end: IPosition;
+	text: string[];
 }
 
 type ConnectionEvent = 'completion' | 'completionResolved' | 'hover' | 'diagnostic' | 'highlight' |
@@ -51,7 +57,7 @@ export interface ILspConnection {
    */
 	getCompletion(
 	location: IPosition,
-	 token: ITokenInfo,
+	 token: ICompletionTokenInfo,
 	 triggerCharacter?: string,
 	 triggerKind?: lsProtocol.CompletionTriggerKind,
 	): void;
