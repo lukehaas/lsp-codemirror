@@ -399,7 +399,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		});
 		
 		const refreshListener = this.handleRefresh.bind(this);
-		this.editor.on('refreshed', refreshListener);
+		this.editor.on('refresh', refreshListener);
 		this.editorListeners.refresh = refreshListener;
 		
 		const mouseLeaveListener = this.handleMouseLeave.bind(this);

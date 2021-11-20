@@ -9,7 +9,8 @@
 		"moduleResolution": "node",
 		"declaration": true,
 		"types":[
-			"@types/codemirror"
+			"@types/codemirror",
+			"mocha"
 		]
 	},
 	"include": [
