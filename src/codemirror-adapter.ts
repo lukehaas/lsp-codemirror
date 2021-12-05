@@ -644,7 +644,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			top -= this.tooltip.offsetHeight;
 
 			this.tooltip.style.left = `${coords.x}px`;
-			this.tooltip.style.top = top < 0 ? `${altTop}px` : `${top}px`;
+			this.tooltip.style.top = top < 30 ? `${altTop}px` : `${top}px`;
 		});
 		
 		this.isShowingContextMenu = true
