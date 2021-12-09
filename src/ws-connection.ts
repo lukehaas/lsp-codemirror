@@ -162,7 +162,9 @@ public sendInitialize() {
 				},
 			} as lsProtocol.WorkspaceClientCapabilities,
 		} as lsProtocol.ClientCapabilities,
-		initializationOptions: null,
+		initializationOptions: {
+			disableAutomaticTypingAcquisition: true,
+		},
 		processId: null,
 		rootUri: this.documentInfo.rootUri,
 		workspaceFolders: null,
