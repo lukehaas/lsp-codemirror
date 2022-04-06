@@ -3,13 +3,25 @@
 import debounce from 'lodash-es/debounce';
 import isEqual from 'lodash-es/isEqual';
 import * as lsProtocol from 'vscode-languageserver-protocol';
-import { Location, LocationLink, MarkupContent } from 'vscode-languageserver-protocol';
-import { getFilledDefaults, IEditorAdapter, ILspConnection, IPosition, ITextEditorOptions, ITokenInfo, ICompletionTokenInfo } from './types';
-import Rect from './icons/rect.svg'
-import Tri from './icons/tri.svg'
-import Circle from './icons/circle.svg'
-import SmallRect from './icons/small_rect.svg'
-import * as CodeMirror from 'codemirror'
+import {
+	Location,
+	LocationLink,
+	MarkupContent,
+} from 'vscode-languageserver-protocol';
+import {
+	getFilledDefaults,
+	IEditorAdapter,
+	ILspConnection,
+	IPosition,
+	ITextEditorOptions,
+	ITokenInfo,
+	ICompletionTokenInfo,
+} from './types';
+import Rect from './icons/rect.svg';
+import Tri from './icons/tri.svg';
+import Circle from './icons/circle.svg';
+import SmallRect from './icons/small_rect.svg';
+import * as CodeMirror from 'codemirror';
 
 interface IScreenCoord {
 	x: number;
@@ -35,7 +47,11 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private tooltip: HTMLElement;
 	private isShowingContextMenu: boolean = false;
 
-	constructor(connection: ILspConnection, options: ITextEditorOptions, editor: CodeMirror.Editor) {
+	constructor(
+		connection: ILspConnection,
+		options: ITextEditorOptions,
+		editor: CodeMirror.Editor
+	) {
 		super(connection, options, editor);
 		this.connection = connection;
 		this.options = getFilledDefaults(options);
@@ -46,12 +62,20 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			this._removeHover();
 			this._removeTooltip();
 			this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
-				if (position.line === diagnostic.start.line || position.line === diagnostic.end.line) {
-					if (position.ch >= diagnostic.start.ch && position.ch <= diagnostic.end.ch) {
+				if (
+					position.line === diagnostic.start.line ||
+					position.line === diagnostic.end.line
+				) {
+					if (
+						position.ch >= diagnostic.start.ch &&
+						position.ch <= diagnostic.end.ch
+					) {
 						const htmlElement = document.createElement('ul');
-						htmlElement.innerHTML = diagnostic.text.map(text => `<li>${text}</li>`).join('');
+						htmlElement.innerHTML = diagnostic.text
+							.map(text => `<li>${text}</li>`)
+							.join('');
 
-						const coords = this.editor.charCoords(diagnostic.start, 'page');
+						const coords = this.editor.charCoords(diagnostic.start, 'local');
 						this._showTooltip(htmlElement, {
 							x: coords.left,
 							y: coords.top,
@@ -70,12 +94,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			this._clearDiagnostics();
 		}
 	}
-	
+
 	public handleMouseLeave() {
 		// this._removeHover();
 		// this._removeTooltip();
 	}
-	
+
 	public handleMouseOver(ev: MouseEvent) {
 		if (!this._isEventOnCharacter(ev)) {
 			return;
@@ -86,14 +110,20 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return;
 		}
 
-		const docPosition: IPosition = this.editor.coordsChar({
-			left: ev.clientX,
-			top: ev.clientY,
-		}, 'window');
+		const docPosition: IPosition = this.editor.coordsChar(
+			{
+				left: ev.clientX,
+				top: ev.clientY,
+			},
+			'window'
+		);
 
 		if (
-			!(this.hoverCharacter &&
-			  docPosition.line === this.hoverCharacter.line && docPosition.ch === this.hoverCharacter.ch)
+			!(
+				this.hoverCharacter &&
+				docPosition.line === this.hoverCharacter.line &&
+				docPosition.ch === this.hoverCharacter.ch
+			)
 		) {
 			// Avoid sending duplicate requests in a row
 			this.hoverCharacter = docPosition;
@@ -106,42 +136,54 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.connection.sendChange();
 		const completionCharacters = this.connection.getLanguageCompletionCharacters();
 		const signatureCharacters = this.connection.getLanguageSignatureCharacters();
-		const code = this.editor.getValue()
-		const line = this.editor.getLine(location.line)
+		const code = this.editor.getValue();
+		const line = this.editor.getLine(location.line);
 		const typedCharacter = line[location.ch - 1];
 		if (typeof typedCharacter === 'undefined') {
 			// Line was cleared
 			this._removeSignatureWidget();
 		} else if (completionCharacters.indexOf(typedCharacter) > -1) {
-			this.token = this._getTokenEndingAtPosition(code, location, completionCharacters);
+			this.token = this._getTokenEndingAtPosition(
+				code,
+				location,
+				completionCharacters
+			);
 			this.connection.getCompletion(
 				location,
 				this.token,
-				completionCharacters.find((c) => c === typedCharacter),
-				lsProtocol.CompletionTriggerKind.TriggerCharacter,
+				completionCharacters.find(c => c === typedCharacter),
+				lsProtocol.CompletionTriggerKind.TriggerCharacter
 			);
 		} else if (signatureCharacters.indexOf(typedCharacter) > -1) {
-			this.token = this._getTokenEndingAtPosition(code, location, signatureCharacters);
+			this.token = this._getTokenEndingAtPosition(
+				code,
+				location,
+				signatureCharacters
+			);
 			this.connection.getSignatureHelp(location);
 		} else if (!/\W/.test(typedCharacter)) {
 			this.connection.getCompletion(
 				location,
 				this.token,
 				'',
-				lsProtocol.CompletionTriggerKind.Invoked,
+				lsProtocol.CompletionTriggerKind.Invoked
 			);
-			this.token = this._getTokenEndingAtPosition(code, location, completionCharacters.concat(signatureCharacters));
+			this.token = this._getTokenEndingAtPosition(
+				code,
+				location,
+				completionCharacters.concat(signatureCharacters)
+			);
 		} else {
 			this._removeSignatureWidget();
 		}
 	}
-	
-	public handleRefresh(){
+
+	public handleRefresh() {
 		this._removeHover();
 		this._removeTooltip();
 	}
-	
-	public handleScrollLeave(){
+
+	public handleScrollLeave() {
 		this._removeHover();
 		this._removeTooltip();
 	}
@@ -198,7 +240,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	// }
 
 	public handleHighlight(items: lsProtocol.DocumentHighlight[]) {
-		this._highlightRanges((items || []).map((i) => i.range));
+		this._highlightRanges((items || []).map(i => i.range));
 	}
 
 	public handleCompletion(completions: lsProtocol.CompletionItem[]): void {
@@ -206,7 +248,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return;
 		}
 
-		const bestCompletions = this._getFilteredCompletions(this.token.text, completions);
+		const bestCompletions = this._getFilteredCompletions(
+			this.token.text,
+			completions
+		);
 		let start = this.token.start;
 		if (/^\W$/.test(this.token.text)) {
 			// Special case for completion on the completion trigger itself, the completion goes after
@@ -223,39 +268,39 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 							text: label,
 							displayText: label,
 							render: (element: HTMLElement) => {
-								const con = document.createElement('div')
-								con.classList.add('CodeMirror-lsp-hint')
-								const text = document.createElement('span')
-								text.innerText = label
+								const con = document.createElement('div');
+								con.classList.add('CodeMirror-lsp-hint');
+								const text = document.createElement('span');
+								text.innerText = label;
 								if (this.options.iconsInSuggestions) {
-									const img = document.createElement('img')
-									img.src = this._getIconByKind(kind)
-									con.append(img)
+									const img = document.createElement('img');
+									img.src = this._getIconByKind(kind);
+									con.append(img);
 								}
-								con.append(text)
-								element.append(con)
-							}
-						}
+								con.append(text);
+								element.append(con);
+							},
+						};
 					}),
 				};
 			},
 		});
 	}
-	private _getIconByKind(kind: number){
-		switch(kind){
+	private _getIconByKind(kind: number) {
+		switch (kind) {
 			case 3:
-				return Rect
+				return Rect;
 			case 14:
-				return Tri
+				return Tri;
 			case 6:
-				return Circle
+				return Circle;
 			default:
-				return SmallRect
+				return SmallRect;
 		}
 	}
 	private _clearDiagnostics() {
 		this.editor.clearGutter('CodeMirror-lsp');
-		this.markedDiagnostics.forEach((marker) => {
+		this.markedDiagnostics.forEach(marker => {
 			marker.clear();
 		});
 		this.markedDiagnostics = [];
@@ -264,7 +309,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public handleDiagnostic(response: lsProtocol.PublishDiagnosticsParams) {
 		if (!this.options.enableDiagnostics) return;
 		this._clearDiagnostics();
-		CodeMirror.signal(this.editor,'lsp/diagnostics', response.diagnostics)
+		CodeMirror.signal(this.editor, 'lsp/diagnostics', response.diagnostics);
 		response.diagnostics.forEach((diagnostic: lsProtocol.Diagnostic) => {
 			const start = {
 				line: diagnostic.range.start.line,
@@ -275,11 +320,15 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				ch: diagnostic.range.end.character,
 			} as CodeMirror.Position;
 
-			this.markedDiagnostics.push(this.editor.getDoc().markText(start, end, {
-				className: this.options.diagnosticMarkClassName,
-			}));
+			this.markedDiagnostics.push(
+				this.editor.getDoc().markText(start, end, {
+					className: this.options.diagnosticMarkClassName,
+				})
+			);
 
-			const duplicateIndex = this.diagnosticResults.findIndex(result => isEqual(result.start, start) && isEqual(result.end, end));
+			const duplicateIndex = this.diagnosticResults.findIndex(
+				result => isEqual(result.start, start) && isEqual(result.end, end)
+			);
 			if (duplicateIndex > -1) {
 				this.diagnosticResults[duplicateIndex].text.push(diagnostic.message);
 			} else {
@@ -337,18 +386,20 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				line: location.range.start.line,
 				ch: location.range.start.character,
 			};
-		} else if ((location as any[]).every((l) => lsProtocol.Location.is(l))) {
-			const locations = (location as Location[]).filter((l) => {
-				return l.uri === documentUri
+		} else if ((location as any[]).every(l => lsProtocol.Location.is(l))) {
+			const locations = (location as Location[]).filter(l => {
+				return l.uri === documentUri;
 			});
-			this._highlightRanges(locations.map((l) => l.range));
+			this._highlightRanges(locations.map(l => l.range));
 			scrollTo = {
 				line: locations[0].range.start.line,
 				ch: locations[0].range.start.character,
 			};
-		} else if ((location as any[]).every((l) => lsProtocol.LocationLink.is(l))) {
-			const locations = (location as LocationLink[]).filter((l) => l.targetUri === documentUri);
-			this._highlightRanges(locations.map((l) => l.targetRange));
+		} else if ((location as any[]).every(l => lsProtocol.LocationLink.is(l))) {
+			const locations = (location as LocationLink[]).filter(
+				l => l.targetUri === documentUri
+			);
+			this._highlightRanges(locations.map(l => l.targetRange));
 			scrollTo = {
 				line: locations[0].targetRange.start.line,
 				ch: locations[0].targetRange.start.character,
@@ -363,23 +414,33 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this._removeTooltip();
 		this._clearDiagnostics();
 		// Show-hint addon doesn't remove itself. This could remove other uses in the project
-		this.editor.getWrapperElement().querySelectorAll('.CodeMirror-hints').forEach((e) => e.remove());
+		this.editor
+			.getWrapperElement()
+			.querySelectorAll('.CodeMirror-hints')
+			.forEach(e => e.remove());
 		this.editor.off('change', this.editorListeners.change);
 		this.editor.off('cursorActivity', this.editorListeners.cursorActivity);
-		this.editor.getWrapperElement().removeEventListener('mousemove', this.editorListeners.mouseover);
+		this.editor
+			.getWrapperElement()
+			.removeEventListener('mousemove', this.editorListeners.mouseover);
 		if (this.options.enableContextMenu) {
-			this.editor.getWrapperElement().removeEventListener('contextmenu', this.editorListeners.contextmenu);
+			this.editor
+				.getWrapperElement()
+				.removeEventListener('contextmenu', this.editorListeners.contextmenu);
 		}
-		Object.keys(this.connectionListeners).forEach((key) => {
+		Object.keys(this.connectionListeners).forEach(key => {
 			this.connection.off(key as any, this.connectionListeners[key]);
 		});
-		Object.keys(this.documentListeners).forEach((key) => {
+		Object.keys(this.documentListeners).forEach(key => {
 			document.removeEventListener(key as any, this.documentListeners[key]);
 		});
 	}
 
 	private _addListeners() {
-		const changeListener = debounce(this.handleChange.bind(this), this.options.debounceSuggestionsWhileTyping);
+		const changeListener = debounce(
+			this.handleChange.bind(this),
+			this.options.debounceSuggestionsWhileTyping
+		);
 		this.editor.on('change', changeListener);
 		this.editorListeners.change = changeListener;
 
@@ -387,25 +448,27 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.connectionListeners = {
 			// hover: this.handleHover.bind(self),
 			// highlight: this.handleHighlight.bind(self),
-			
+
 			completion: this.handleCompletion.bind(self),
 			// signature: this.handleSignature.bind(self),
 			diagnostic: this.handleDiagnostic.bind(self),
 			// goTo: this.handleGoTo.bind(self),
 		};
 
-		Object.keys(this.connectionListeners).forEach((key) => {
+		Object.keys(this.connectionListeners).forEach(key => {
 			this.connection.on(key as any, this.connectionListeners[key]);
 		});
-		
+
 		const refreshListener = this.handleRefresh.bind(this);
 		this.editor.on('refresh', refreshListener);
 		this.editorListeners.refresh = refreshListener;
-		
+
 		const mouseLeaveListener = this.handleMouseLeave.bind(this);
-		this.editor.getWrapperElement().addEventListener('mouseleave', mouseLeaveListener);
+		this.editor
+			.getWrapperElement()
+			.addEventListener('mouseleave', mouseLeaveListener);
 		this.editorListeners.mouseleave = mouseLeaveListener;
-		
+
 		const scrollListener = this.handleScrollLeave.bind(this);
 		this.editor.on('scroll', scrollListener);
 		this.editorListeners.scroll = scrollListener;
@@ -420,7 +483,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 		if (this.options.enableContextMenu) {
 			const rightClickHandler = this._handleRightClick.bind(this);
-			this.editor.getWrapperElement().addEventListener('contextmenu', rightClickHandler);
+			this.editor
+				.getWrapperElement()
+				.addEventListener('contextmenu', rightClickHandler);
 			this.editorListeners.contextmenu = rightClickHandler;
 		}
 		// this.editor.on('cursorActivity', debouncedCursor);
@@ -429,13 +494,17 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const clickOutsideListener = this._handleClickOutside.bind(this);
 		document.addEventListener('click', clickOutsideListener);
 		this.documentListeners.clickOutside = clickOutsideListener;
-		
+
 		const clickInsideListener = this._handleClickInside.bind(this);
 		this.editor.on('focus', clickInsideListener);
 		this.documentListeners.clickInside = clickInsideListener;
 	}
 
-	private _getTokenEndingAtPosition(code: string, location: IPosition, splitCharacters: string[]): ICompletionTokenInfo {
+	private _getTokenEndingAtPosition(
+		code: string,
+		location: IPosition,
+		splitCharacters: string[]
+	): ICompletionTokenInfo {
 		const lines = code.split('\n');
 		const line = lines[location.line];
 		const typedCharacter = line[location.ch - 1];
@@ -470,26 +539,28 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private _getFilteredCompletions(
-	triggerWord: string,
-	 items: lsProtocol.CompletionItem[],
+		triggerWord: string,
+		items: lsProtocol.CompletionItem[]
 	): lsProtocol.CompletionItem[] {
 		const word = triggerWord.split(/\W+/)[0];
 		if (/\W+/.test(word) || !items) {
 			return [];
 		}
-		return items.filter((item: lsProtocol.CompletionItem) => {
-			if (item.filterText && item.filterText.indexOf(word) === 0) {
-				return true;
-			} else if( item.label === word) {
-				return false
-			} else {
-				return item.label.indexOf(word) === 0;
-			}
-		}).sort((a: lsProtocol.CompletionItem, b: lsProtocol.CompletionItem) => {
-			const inA = (a.label.indexOf(triggerWord) === 0) ? -1 : 1;
-			const inB = b.label.indexOf(triggerWord) === 0 ? 1 : -1;
-			return inA + inB;
-		});
+		return items
+			.filter((item: lsProtocol.CompletionItem) => {
+				if (item.filterText && item.filterText.indexOf(word) === 0) {
+					return true;
+				} else if (item.label === word) {
+					return false;
+				} else {
+					return item.label.indexOf(word) === 0;
+				}
+			})
+			.sort((a: lsProtocol.CompletionItem, b: lsProtocol.CompletionItem) => {
+				const inA = a.label.indexOf(triggerWord) === 0 ? -1 : 1;
+				const inB = b.label.indexOf(triggerWord) === 0 ? 1 : -1;
+				return inA + inB;
+			});
 	}
 
 	private _isEventInsideVisible(ev: MouseEvent) {
@@ -508,10 +579,13 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private _isEventOnCharacter(ev: MouseEvent) {
-		const docPosition: IPosition = this.editor.coordsChar({
-			left: ev.clientX,
-			top: ev.clientY,
-		}, 'window');
+		const docPosition: IPosition = this.editor.coordsChar(
+			{
+				left: ev.clientX,
+				top: ev.clientY,
+			},
+			'window'
+		);
 
 		const token = this.editor.getTokenAt(docPosition);
 		const hasToken = !!token.string.length;
@@ -524,42 +598,46 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return;
 		}
 
-		if( !this.connection.isDefinitionSupported() && 
-		   !this.connection.isTypeDefinitionSupported() && 
-		   !this.connection.isReferencesSupported()
-		  ){
-			return
+		if (
+			!this.connection.isDefinitionSupported() &&
+			!this.connection.isTypeDefinitionSupported() &&
+			!this.connection.isReferencesSupported()
+		) {
+			return;
 		}
 
 		ev.preventDefault();
 
-		const docPosition: IPosition = this.editor.coordsChar({
-			left: ev.clientX,
-			top: ev.clientY,
-		}, 'window');
-		
-		if(this.options.contextMenuProvider){
-			let features: Array<{ label: String, action: any}> = []
+		const docPosition: IPosition = this.editor.coordsChar(
+			{
+				left: ev.clientX,
+				top: ev.clientY,
+			},
+			'window'
+		);
+
+		if (this.options.contextMenuProvider) {
+			let features: Array<{ label: String; action: any }> = [];
 			if (this.connection.isDefinitionSupported()) {
 				features.push({
 					label: 'Go to Definition',
-					action: () => this.connection.getDefinition(docPosition)
-				})
+					action: () => this.connection.getDefinition(docPosition),
+				});
 			}
 			if (this.connection.isTypeDefinitionSupported()) {
 				features.push({
 					label: 'Go to Type Definition',
-					action: () => this.connection.getTypeDefinition(docPosition)
-				})
+					action: () => this.connection.getTypeDefinition(docPosition),
+				});
 			}
 			if (this.connection.isReferencesSupported()) {
 				features.push({
 					label: 'Find all References',
-					action: () => this.connection.getReferences(docPosition)
-				})
+					action: () => this.connection.getReferences(docPosition),
+				});
 			}
-			this.options.contextMenuProvider(ev, features)
-		}else{
+			this.options.contextMenuProvider(ev, features);
+		} else {
 			const htmlElement = document.createElement('div');
 			htmlElement.classList.add('CodeMirror-lsp-context');
 
@@ -591,17 +669,16 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			}
 			const coords = this.editor.charCoords(docPosition, 'page');
 			this._showTooltip(htmlElement, {
-				x: ev.x-4,
-				y: ev.y+8,
+				x: ev.x - 4,
+				y: ev.y + 8,
 			});
 		}
-		
 	}
 
-	private _handleClickInside(ev: MouseEvent){
-		this._unhighlightRanges()
+	private _handleClickInside(ev: MouseEvent) {
+		this._unhighlightRanges();
 	}
-	
+
 	private _handleClickOutside(ev: MouseEvent) {
 		if (this.isShowingContextMenu) {
 			let target: HTMLElement = ev.target as HTMLElement;
@@ -636,7 +713,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.tooltip.style.left = `${coords.x}px`;
 		this.tooltip.style.top = `${top}px`;
 		this.tooltip.appendChild(el);
-		document.body.appendChild(this.tooltip);
+		this.editor.getWrapperElement().appendChild(this.tooltip);
 
 		// Measure and reposition after rendering first version
 		requestAnimationFrame(() => {
@@ -644,10 +721,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			top -= this.tooltip.offsetHeight;
 
 			this.tooltip.style.left = `${coords.x}px`;
-			this.tooltip.style.top = top < 30 ? `${altTop}px` : `${top}px`;
+			this.tooltip.style.top = top < 0 ? `${altTop}px` : `${top}px`;
 		});
-		
-		this.isShowingContextMenu = true
+
+		this.isShowingContextMenu = true;
 	}
 
 	private _removeTooltip() {
@@ -676,21 +753,20 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 	private _unhighlightRanges() {
 		if (this.highlightMarkers) {
-			this.highlightMarkers.forEach((marker) => {
+			this.highlightMarkers.forEach(marker => {
 				marker.clear();
 			});
 		}
 		this.highlightMarkers = [];
 	}
 	private _highlightRanges(items: lsProtocol.Range[]) {
-		
-		this._unhighlightRanges()
-		
+		this._unhighlightRanges();
+
 		if (!items.length) {
 			return;
 		}
 
-		items.forEach((item) => {
+		items.forEach(item => {
 			const start = {
 				line: item.start.line,
 				ch: item.start.character,
@@ -700,9 +776,11 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				ch: item.end.character,
 			} as CodeMirror.Position;
 
-			this.highlightMarkers.push(this.editor.getDoc().markText(start, end, {
-				className: 'CodeMirror-lsp-highlight',
-			}));
+			this.highlightMarkers.push(
+				this.editor.getDoc().markText(start, end, {
+					className: 'CodeMirror-lsp-highlight',
+				})
+			);
 		});
 	}
 }
