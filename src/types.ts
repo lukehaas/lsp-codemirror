@@ -278,6 +278,7 @@ export interface ILspOptions {
 	documentUri: string;
 	documentText: (() => string);
 	rootUri: string;
+	locale?: string;
 }
 
 /**

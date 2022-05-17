@@ -164,6 +164,7 @@ public sendInitialize() {
 		} as lsProtocol.ClientCapabilities,
 		initializationOptions: {
 			disableAutomaticTypingAcquisition: true,
+			locale: this.documentInfo.locale || 'en',
 		},
 		processId: null,
 		rootUri: this.documentInfo.rootUri,
