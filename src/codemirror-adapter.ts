@@ -16,6 +16,7 @@ import {
 	ITextEditorOptions,
 	ITokenInfo,
 	ICompletionTokenInfo,
+	TooltipData,
 } from './types';
 import Rect from './icons/rect.svg';
 import Tri from './icons/tri.svg';
@@ -58,31 +59,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editor = editor;
 
 		this.debouncedGetHover = debounce((position: IPosition) => {
-			// this.connection.getHoverTooltip(position);
-			this._removeHover();
-			this._removeTooltip();
-			this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
-				if (
-					position.line === diagnostic.start.line ||
-					position.line === diagnostic.end.line
-				) {
-					if (
-						position.ch >= diagnostic.start.ch &&
-						position.ch <= diagnostic.end.ch
-					) {
-						const htmlElement = document.createElement('ul');
-						htmlElement.innerHTML = diagnostic.text
-							.map(text => `<li>${text}</li>`)
-							.join('');
-
-						const coords = this.editor.charCoords(diagnostic.start, 'local');
-						this._showTooltip(htmlElement, {
-							x: coords.left,
-							y: coords.top,
-						});
-					}
-				}
-			});
+			if (!this.options.enableDiagnostics && !this.options.enableSignatures) {
+				return;
+			}
+			this.connection.getHoverTooltip(position);
 		}, this.options.quickSuggestionsDelay);
 
 		this._addListeners();
@@ -188,56 +168,119 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this._removeTooltip();
 	}
 
-	// public handleHover(response: lsProtocol.Hover) {
-	// this._removeHover();
-	// this._removeTooltip();
-	// 	if (!response || !response.contents || (Array.isArray(response.contents) && response.contents.length === 0)) {
-	// 		return;
-	// 	}
+	public handleHover(response: lsProtocol.Hover, position: IPosition) {
+		this._removeHover();
+		this._removeTooltip();
 
-	// 	let start = this.hoverCharacter;
-	// 	let end = this.hoverCharacter;
-	// 	if (response.range) {
-	// 		start = {
-	// 			line: response.range.start.line,
-	// 			ch: response.range.start.character,
-	// 		} as CodeMirror.Position;
-	// 		end = {
-	// 			line: response.range.end.line,
-	// 			ch: response.range.end.character,
-	// 		} as CodeMirror.Position;
+		const tooltipData: TooltipData = {
+			hasData: false,
+			x: 0,
+			y: 0,
+		}
 
-	// 		this.hoverMarker = this.editor.getDoc().markText(start, end, {
-	// 			className: 'CodeMirror-lsp-hover'
-	// 		});
-	// 	}
+		this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
+			if (
+				position.line === diagnostic.start.line ||
+				position.line === diagnostic.end.line
+			) {
+				if (
+					position.ch >= diagnostic.start.ch &&
+					position.ch <= diagnostic.end.ch
+				) {
+					const htmlElement = document.createElement('ul');
+					htmlElement.innerHTML = diagnostic.text
+						.map(text => `<li>${text}</li>`)
+						.join('');
 
-	// 	let tooltipText: string;
-	// 	if (MarkupContent.is(response.contents)) {
-	// 		tooltipText = response.contents.value;
-	// 	} else if (Array.isArray(response.contents)) {
-	// 		const firstItem = response.contents[0];
-	// 		if (MarkupContent.is(firstItem)) {
-	// 			tooltipText = firstItem.value;
-	// 		} else if (firstItem === null) {
-	// 			return;
-	// 		} else if (typeof firstItem === 'object') {
-	// 			tooltipText = firstItem.value;
-	// 		} else {
-	// 			tooltipText = firstItem;
-	// 		}
-	// 	} else if (typeof response.contents === 'string') {
-	// 		tooltipText = response.contents;
-	// 	}
+					const coords = this.editor.charCoords(diagnostic.start, 'local');
+					tooltipData.hasData = true;
+					tooltipData.x = coords.left;
+					tooltipData.y = coords.top;
+					tooltipData.htmlElement = htmlElement;
+				}
+			}
+		});
 
-	// 	const htmlElement = document.createElement('div');
-	// 	htmlElement.innerText = tooltipText;
-	// 	const coords = this.editor.charCoords(start, 'page');
-	// 	this._showTooltip(htmlElement, {
-	// 		x: coords.left,
-	// 		y: coords.top,
-	// 	});
-	// }
+		if (!this.options.enableSignatures || !response || !response.contents || (Array.isArray(response.contents) && response.contents.length === 0)) {
+			this._showTooltipWithData(tooltipData);
+			return;
+		}
+
+		let start = this.hoverCharacter;
+		let end = this.hoverCharacter;
+		if (response.range) {
+			start = {
+				line: response.range.start.line,
+				ch: response.range.start.character,
+			} as CodeMirror.Position;
+			end = {
+				line: response.range.end.line,
+				ch: response.range.end.character,
+			} as CodeMirror.Position;
+
+			this.hoverMarker = this.editor.getDoc().markText(start, end, {
+				className: 'CodeMirror-lsp-hover'
+			});
+		}
+
+		let tooltipText: string;
+		let docText: string;
+		if (MarkupContent.is(response.contents)) {
+			tooltipText = response.contents.value;
+		} else if (Array.isArray(response.contents)) {
+			const firstItem = response.contents[0];
+			const secondItem = response.contents.length > 1 ? response.contents[1] : '';
+			if (typeof secondItem === 'string') {
+				docText = secondItem;
+			}
+			if (MarkupContent.is(firstItem)) {
+				tooltipText = firstItem.value;
+			} else if (firstItem === null) {
+				this._showTooltipWithData(tooltipData);
+				return;
+			} else if (typeof firstItem === 'object') {
+				tooltipText = firstItem.value;
+			} else {
+				tooltipText = firstItem;
+			}
+		} else if (typeof response.contents === 'string') {
+			tooltipText = response.contents;
+		}
+
+		const wrapper = document.createElement('div');
+		
+		const signatureElement = document.createElement('div');
+		signatureElement.classList.add("lsp-inner");
+		signatureElement.innerText = tooltipText;
+		const coords = this.editor.charCoords(start, 'local');
+
+		if (tooltipData.hasData && tooltipData.x === coords.left && tooltipData.y === coords.top) {
+			wrapper.appendChild(tooltipData.htmlElement);
+			wrapper.appendChild(signatureElement);
+		}
+		wrapper.appendChild(signatureElement);
+
+		if (docText) {
+			const docElement = document.createElement('div');
+			docElement.classList.add("lsp-inner");
+			docElement.innerText = docText;
+			wrapper.appendChild(docElement);
+		}
+
+		this._showTooltip(wrapper, {
+			x: coords.left,
+			y: coords.top,
+		});
+	}
+
+	private _showTooltipWithData(tooltipData: TooltipData) {
+		if (tooltipData.hasData) {
+			this._showTooltip(tooltipData.htmlElement, {
+				x: tooltipData.x,
+				y: tooltipData.y,
+			});
+		}
+	}
 
 	public handleHighlight(items: lsProtocol.DocumentHighlight[]) {
 		this._highlightRanges((items || []).map(i => i.range));
@@ -446,11 +489,11 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 		const self = this;
 		this.connectionListeners = {
-			// hover: this.handleHover.bind(self),
+			hover: this.handleHover.bind(self),
 			// highlight: this.handleHighlight.bind(self),
 
 			completion: this.handleCompletion.bind(self),
-			// signature: this.handleSignature.bind(self),
+			signature: this.handleSignature.bind(self),
 			diagnostic: this.handleDiagnostic.bind(self),
 			// goTo: this.handleGoTo.bind(self),
 		};

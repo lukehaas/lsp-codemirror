@@ -165,6 +165,9 @@ public sendInitialize() {
 		initializationOptions: {
 			disableAutomaticTypingAcquisition: true,
 			locale: this.documentInfo.locale || 'en',
+			preferences: {
+				displayPartsForJSDoc: true,
+			}
 		},
 		processId: null,
 		rootUri: this.documentInfo.rootUri,
@@ -210,6 +213,9 @@ public sendChange() {
 }
 
 public getHoverTooltip(location: IPosition) {
+	if (!this.isConnected) {
+		return;
+	}
 	if (!this.isInitialized) {
 		return;
 	}
@@ -222,7 +228,7 @@ public getHoverTooltip(location: IPosition) {
 			character: location.ch,
 		},
 	} as lsProtocol.TextDocumentPositionParams).then((params: lsProtocol.Hover) => {
-		this.emit('hover', params);
+		this.emit('hover', params, location);
 	});
 }
 

@@ -270,6 +270,11 @@ export interface ITextEditorOptions {
    * Defaults to true
    */
 	enableDiagnostics?: boolean;
+		/**
+   * Enable signatures
+   * Defaults to true
+   */
+	enableSignatures?: boolean;
 }
 
 export interface ILspOptions {
@@ -318,5 +323,13 @@ export function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptio
 		enableContextMenu: true,
 		enableGutterMarks: true,
 		enableDiagnostics: true,
+		enableSignatures: true,
 	}, options);
+}
+
+export type TooltipData = {
+	hasData: boolean;
+	x: number;
+	y: number;
+	htmlElement?: HTMLElement
 }
