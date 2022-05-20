@@ -275,6 +275,11 @@ export interface ITextEditorOptions {
    * Defaults to true
    */
 	enableSignatures?: boolean;
+			/**
+   * Enable hover info
+   * Defaults to true
+   */
+	enableHoverInfo?: boolean;
 }
 
 export interface ILspOptions {
@@ -324,6 +329,7 @@ export function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptio
 		enableGutterMarks: true,
 		enableDiagnostics: true,
 		enableSignatures: true,
+		enableHoverInfo: true,
 	}, options);
 }
 
