@@ -54,69 +54,69 @@ color: blue;
 const normalize = dir => dir.replace(/\\/gm,'/')
 
 const htmlEditor = CodeMirror(document.querySelector('.html'), {
-	theme: 'idea',
-	lineNumbers: true,
-	mode: 'htmlmixed',
-	value: sampleHtml,
-	gutters: ['CodeMirror-lsp'],
+  theme: 'idea',
+  lineNumbers: true,
+  mode: 'htmlmixed',
+  value: sampleHtml,
+  gutters: ['CodeMirror-lsp'],
 });
 
 const cssEditor = CodeMirror(document.querySelector('.css'), {
-	theme: 'idea',
-	lineNumbers: true,
-	mode: 'css',
-	value: sampleCss,
-	gutters: ['CodeMirror-lsp'],
+  theme: 'idea',
+  lineNumbers: true,
+  mode: 'css',
+  value: sampleCss,
+  gutters: ['CodeMirror-lsp'],
 });
 
 const tsEditor = CodeMirror(document.querySelector('.ts'), {
-	theme: 'idea',
-	lineNumbers: true,
-	mode: 'text/typescript',
-	value: sampleTs,
-	gutters: ['CodeMirror-lsp'],
+  theme: 'idea',
+  lineNumbers: true,
+  mode: 'text/typescript',
+  value: sampleTs,
+  gutters: ['CodeMirror-lsp'],
 });
 
 //tsEditor.on('lsp/diagnostics',data => console.log(data))
 
 const html = {
-	serverUri: 'ws://localhost:3001/html',
-	languageId: 'html',
-	rootUri: `file://${normalize(path.join(__dirname,'example-project'))}`,
-	documentUri:  `file://${normalize(path.join(__dirname,'example-project/project.html'))}`,
-	documentText: () => htmlEditor.getValue(),
+  serverUri: 'ws://localhost:3001/html',
+  languageId: 'html',
+  rootUri: `file://${normalize(path.join(__dirname,'example-project'))}`,
+  documentUri:  `file://${normalize(path.join(__dirname,'example-project/project.html'))}`,
+  documentText: () => htmlEditor.getValue(),
 };
 
 const ts = {
-	serverUri: 'ws://localhost:3001/typescript',
-	languageId: 'typescript',
-	rootUri: `file:///${normalize(path.join(__dirname,'example-project'))}`,
-	documentUri:  `file:///${normalize(path.join(__dirname,'example-project/source.ts'))}`,
-	documentText: () => tsEditor.getValue(),
+  serverUri: 'ws://localhost:3001/typescript',
+  languageId: 'typescript',
+  rootUri: `file:///${normalize(path.join(__dirname,'example-project'))}`,
+  documentUri:  `file:///${normalize(path.join(__dirname,'example-project/source.ts'))}`,
+  documentText: () => tsEditor.getValue(),
 };
 
 const css = {
-	serverUri: 'ws://localhost:3001/css',
-	languageId: 'css',
-	rootUri: `file://${normalize(path.join(__dirname,'example-project'))}`,
-	documentUri: `file://${normalize(path.join(__dirname,'example-project/styles.css'))}`,
-	documentText: () => cssEditor.getValue(),
+  serverUri: 'ws://localhost:3001/css',
+  languageId: 'css',
+  rootUri: `file://${normalize(path.join(__dirname,'example-project'))}`,
+  documentUri: `file://${normalize(path.join(__dirname,'example-project/styles.css'))}`,
+  documentText: () => cssEditor.getValue(),
 };
 
 const htmlConnection = new LspWsConnection(html).connect(new WebSocket(html.serverUri));
 
 const htmlAdapter = new CodeMirrorAdapter(htmlConnection, {
-	quickSuggestionsDelay: 25,
+  quickSuggestionsDelay: 25,
 }, htmlEditor);
 
 const cssConnection = new LspWsConnection(css).connect(new WebSocket(css.serverUri));
 
 const cssAdapter = new CodeMirrorAdapter(cssConnection, {
-	quickSuggestionsDelay: 75,
+  quickSuggestionsDelay: 75,
 }, cssEditor);
 
 const tsConnection = new LspWsConnection(ts).connect(new WebSocket(ts.serverUri));
 
 const tsAdapter = new CodeMirrorAdapter(tsConnection, {
-	quickSuggestionsDelay: 75
+  quickSuggestionsDelay: 75
 }, tsEditor);
