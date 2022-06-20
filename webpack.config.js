@@ -1,5 +1,3 @@
-const path = require('path');
-
 module.exports = {
   mode: 'production',
   entry: {
@@ -11,25 +9,6 @@ module.exports = {
         test: /\.ts?$/,
         use: 'ts-loader',
         exclude: /node_modules/,
-      },
-      {
-        test: /\.(woff(2)?|ttf|eot|png|jpe?g|svg)(\?v=\d+\.\d+\.\d+)?$/,
-        include: path.resolve(__dirname, 'src'),
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-              outputPath: 'icons/',
-            },
-          },
-          {
-            loader: 'image-webpack-loader',
-            options: {
-              disable: true,
-            },
-          },
-        ],
       },
     ],
   },

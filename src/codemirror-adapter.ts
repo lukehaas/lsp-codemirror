@@ -7,6 +7,7 @@ import {
   Location,
   LocationLink,
   MarkupContent,
+  CompletionItemKind
 } from 'vscode-languageserver-protocol';
 import { marked } from 'marked';
 import {
@@ -19,10 +20,6 @@ import {
   ICompletionTokenInfo,
   TooltipData,
 } from './types';
-import Rect from './icons/rect.svg';
-import Tri from './icons/tri.svg';
-import Circle from './icons/circle.svg';
-import SmallRect from './icons/small_rect.svg';
 import * as CodeMirror from 'codemirror';
 
 interface IScreenCoord {
@@ -34,6 +31,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
   public options: ITextEditorOptions;
   public editor: CodeMirror.Editor;
   public connection: ILspConnection;
+	public snippets: lsProtocol.CompletionItem[];
 
   private hoverMarker: CodeMirror.TextMarker;
   private signatureWidget: CodeMirror.LineWidget;
@@ -52,12 +50,14 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
   constructor(
     connection: ILspConnection,
     options: ITextEditorOptions,
-    editor: CodeMirror.Editor
+    editor: CodeMirror.Editor,
+		snippets: lsProtocol.CompletionItem[]
   ) {
     super(connection, options, editor);
     this.connection = connection;
     this.options = getFilledDefaults(options);
     this.editor = editor;
+    this.snippets = snippets;
 
     this.debouncedGetHover = debounce((position: IPosition) => {
       if (!this.options.enableDiagnostics && !this.options.enableHoverInfo) {
@@ -74,6 +74,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     if (!this.options.enableDiagnostics) {
       this._clearDiagnostics();
     }
+  }
+
+  public updateSnippets(newSnippets: lsProtocol.CompletionItem[]) {
+    this.snippets = newSnippets;
   }
 
   public handleMouseLeave() {
@@ -317,6 +321,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       this.token.text,
       completions
     );
+    const bestSnippets = this._getFilteredCompletions(this.token.text, this.snippets);
     let start = this.token.start;
     if (/^\W$/.test(this.token.text)) {
       // Special case for completion on the completion trigger itself, the completion goes after
@@ -328,39 +333,89 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
         return {
           from: start,
           to: this.token.end,
-          list: bestCompletions.map(({ label, kind }) => {
-            return {
-              text: label,
-              displayText: label,
-              render: (element: HTMLElement) => {
-                const con = document.createElement('div');
-                con.classList.add('CodeMirror-lsp-hint');
-                const text = document.createElement('span');
-                text.innerText = label;
-                if (this.options.iconsInSuggestions) {
-                  const img = document.createElement('img');
-                  img.src = this._getIconByKind(kind);
-                  con.append(img);
-                }
-                con.append(text);
-                element.append(con);
-              },
-            };
-          }),
+          list: [...this._getHintList(bestSnippets), ...this._getHintList(bestCompletions)]
         };
       },
     });
   }
+  private _getHintList(hints: lsProtocol.CompletionItem[]) {
+    // @ts-ignore
+    return hints.map(({ label, labelDetails, insertText, kind }) => {
+      return {
+        text: insertText || label,
+        displayText: label,
+        render: (element: HTMLElement) => {
+          const wrapper = document.createElement('span');
+          const text = document.createElement('span');
+          const descriptionText = document.createElement('span');
+          text.innerText = label;
+
+          const icon = document.createElement('i');
+          icon.classList.add('autocomplete-icon', `icon-symbol-${this._getIconByKind(kind)}`);
+          wrapper.append(icon);
+          wrapper.append(text);
+          
+          element.append(wrapper);
+          if (labelDetails) {
+            descriptionText.classList.add('description');
+            descriptionText.innerText = labelDetails;
+            element.append(descriptionText);
+          }
+        },
+      };
+    });
+  }
   private _getIconByKind(kind: number) {
     switch (kind) {
-      case 3:
-        return Rect;
-      case 14:
-        return Tri;
-      case 6:
-        return Circle;
+      case CompletionItemKind.Method:
+      case CompletionItemKind.Function:
+      case CompletionItemKind.Constructor:
+        return 'method';
+      case CompletionItemKind.Field:
+        return 'field';
+      case CompletionItemKind.Variable:
+        return 'variable';
+      case CompletionItemKind.Class:
+        return 'class';
+      case CompletionItemKind.Struct:
+        return 'structure';
+      case CompletionItemKind.Interface:
+        return 'interface';
+      case CompletionItemKind.Module:
+        return 'namespace';
+      case CompletionItemKind.Property:
+        return 'property';
+      case CompletionItemKind.Event:
+        return 'event';
+      case CompletionItemKind.Operator:
+        return 'operator';
+      case CompletionItemKind.Unit:
+        return 'ruler';
+      case CompletionItemKind.Constant:
+        return 'constant';
+      case CompletionItemKind.Enum:
+      case CompletionItemKind.Value:
+        return 'enum';
+      case CompletionItemKind.EnumMember:
+        return 'enum-member';
+      case CompletionItemKind.Keyword:
+        return 'keyword';
+      case CompletionItemKind.Snippet:
+        return 'snippet';
+      case CompletionItemKind.Text:
+        return 'string';
+      case CompletionItemKind.Color:
+        return 'color';
+      case CompletionItemKind.File:
+        return 'file';
+      case CompletionItemKind.Reference:
+        return 'misc';
+      case CompletionItemKind.Folder:
+        return 'file';
+      case CompletionItemKind.TypeParameter:
+        return 'parameter';
       default:
-        return SmallRect;
+        return 'property';
     }
   }
   private _clearDiagnostics() {

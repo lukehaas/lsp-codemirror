@@ -18,13 +18,6 @@ export interface ITokenInfo {
   text: string[];
 }
 
-type Snippet = {
-  scope?: string;
-  prefix: string;
-  body: string;
-  description: string;
-}
-
 type ConnectionEvent = 'completion' | 'completionResolved' | 'hover' | 'diagnostic' | 'highlight' |
 'signature' | 'goTo' | 'error' | 'logging';
 
@@ -243,11 +236,6 @@ export interface ITextEditorOptions {
    */
   enableParameterHints?: boolean;
   /**
-   * Render icons in suggestions box.
-   * Defaults to true.
-   */
-  iconsInSuggestions?: boolean;
-  /**
    * Enable format on type.
    * Defaults to false.
    */
@@ -287,8 +275,6 @@ export interface ITextEditorOptions {
    * Defaults to true
    */
   enableHoverInfo?: boolean;
-
-  snippets?: Snippet[];
 }
 
 export interface ILspOptions {
@@ -330,7 +316,6 @@ export function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptio
     quickSuggestions: true,
     quickSuggestionsDelay: 200,
     enableParameterHints: true,
-    iconsInSuggestions: true,
     formatOnType: false,
     formatOnPaste: false,
     diagnosticMarkClassName: 'cm-error',
