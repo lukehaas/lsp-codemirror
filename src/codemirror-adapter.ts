@@ -817,12 +817,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     if (this.isShowingContextMenu) {
       let target: HTMLElement = ev.target as HTMLElement;
       let isInside = false;
-      while (target !== document.body) {
-        if (target.classList.contains('CodeMirror-lsp-tooltip')) {
+      while (target && target !== document.body) {
+        if (target && target.classList.contains('CodeMirror-lsp-tooltip')) {
           isInside = true;
           break;
         }
-        target = target.parentElement;
+        target = target?.parentElement;
       }
 
       if (isInside) {
