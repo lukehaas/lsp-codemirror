@@ -358,7 +358,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
           element.append(wrapper);
           if (labelDetails) {
             descriptionText.classList.add('description');
-            descriptionText.innerText = labelDetails;
+            descriptionText.innerText = labelDetails as string;
             element.append(descriptionText);
           }
         },
