@@ -338,6 +338,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       },
     });
   }
+  private _getText(completion: ICompletionTokenInfo) {
+    if (typeof completion == "string") return completion;
+    else return completion.text;
+  }
   private _getHintList(hints: lsProtocol.CompletionItem[]) {
     // @ts-ignore
     return hints.map(({ label, labelDetails, insertText, kind }) => {
@@ -362,6 +366,27 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
             element.append(descriptionText);
           }
         },
+        hint: (cm: CodeMirror.Editor, data: any, completion: any) => {
+          const text = this._getText(completion);
+          const from = completion.from || data.from
+          const { line, ch } = from;
+          cm.replaceRange(text.replace(/\$0/g, ''), from, completion.to || data.to, "complete");
+
+          if (text.includes('$0')) {
+            let cursorLine = line;
+            let cursorCh = ch;
+            const textArr = text.split('\n');
+            textArr.forEach((str, index) => {
+              const pos = str.lastIndexOf('$0');
+              if (pos > -1) {
+                cursorLine = line + index;
+                cursorCh = pos;
+              }
+            })
+
+            cm.setCursor(cursorLine,cursorCh);
+          }
+        }
       };
     });
   }
