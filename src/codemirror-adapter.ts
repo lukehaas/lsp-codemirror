@@ -319,9 +319,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
     const bestCompletions = this._getFilteredCompletions(
       this.token.text,
-      completions
+      completions,
+      false
     );
-    const bestSnippets = this._getFilteredCompletions(this.token.text, this.snippets);
+    const bestSnippets = this._getFilteredCompletions(this.token.text, this.snippets, true);
     let start = this.token.start;
     if (/^\W$/.test(this.token.text)) {
       // Special case for completion on the completion trigger itself, the completion goes after
@@ -689,25 +690,30 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
   private _getFilteredCompletions(
     triggerWord: string,
-    items: lsProtocol.CompletionItem[]
+    items: lsProtocol.CompletionItem[],
+    canMatchWholeWord: boolean
   ): lsProtocol.CompletionItem[] {
-    const word = triggerWord.split(/\W+/)[0];
-    if (/\W+/.test(word) || !items) {
+    const firstWord = triggerWord.split(/\W+/)[0];
+    if (/\W+/.test(firstWord) || !items) {
       return [];
     }
+    const word = firstWord.toLowerCase();
     return items
       .filter((item: lsProtocol.CompletionItem) => {
-        if (item.filterText && item.filterText.indexOf(word) === 0) {
+        const label = item.label.toLocaleLowerCase();
+        if (item.filterText && item.filterText.toLowerCase().startsWith(word) === true) {
           return true;
-        } else if (item.label === word) {
+        } else if (canMatchWholeWord === false && label === word ) {
           return false;
         } else {
-          return item.label.indexOf(word) === 0;
+          return label.startsWith(word) === true;
         }
       })
       .sort((a: lsProtocol.CompletionItem, b: lsProtocol.CompletionItem) => {
-        const inA = a.label.indexOf(triggerWord) === 0 ? -1 : 1;
-        const inB = b.label.indexOf(triggerWord) === 0 ? 1 : -1;
+        const labelA = a.label.toLocaleLowerCase();
+        const labelB = b.label.toLocaleLowerCase();
+        const inA = labelA.startsWith(word) === true ? -1 : 1;
+        const inB = labelB.startsWith(word) === true ? 1 : -1;
         return inA + inB;
       });
   }
