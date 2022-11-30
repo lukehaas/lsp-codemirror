@@ -240,15 +240,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     }
 
     let tooltipText: string;
-    let docText: string;
+    let isMarkdown: boolean;
     if (MarkupContent.is(response.contents)) {
       tooltipText = response.contents.value;
+      isMarkdown = response.contents.kind === 'markdown';
     } else if (Array.isArray(response.contents)) {
       const firstItem = response.contents[0];
-      const secondItem = response.contents.length > 1 ? response.contents[1] : '';
-      if (typeof secondItem === 'string') {
-        docText = secondItem;
-      }
       if (MarkupContent.is(firstItem)) {
         tooltipText = firstItem.value;
       } else if (firstItem === null) {
@@ -264,10 +261,22 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     }
 
     const wrapper = document.createElement('div');
-    
+
     const signatureElement = document.createElement('div');
     signatureElement.classList.add("lsp-inner");
-    signatureElement.innerText = tooltipText;
+    if (isMarkdown) {
+      signatureElement.classList.add("lsp-markdown");
+      signatureElement.innerHTML = marked.parse(tooltipText);
+      signatureElement.addEventListener('click', (event) => {
+        event.preventDefault();
+        const target = event.target as HTMLAnchorElement;
+        if (target.href) {
+          CodeMirror.signal(this.editor,'lsp/open', target.href);
+        }
+      })
+    } else {
+      signatureElement.innerText = tooltipText;
+    }
     const coords = this.editor.charCoords(start, 'local');
     const scrollCords = this.editor.getScrollInfo();
     const left = coords.left - scrollCords.left;
@@ -278,20 +287,6 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       wrapper.appendChild(signatureElement);
     }
     wrapper.appendChild(signatureElement);
-
-    if (docText) {
-      const docElement = document.createElement('div');
-      docElement.classList.add("lsp-inner", 'lsp-markdown');
-      docElement.innerHTML = marked.parse(docText);
-      wrapper.appendChild(docElement);
-      docElement.addEventListener('click', (event) => {
-        event.preventDefault();
-        const target = event.target as HTMLAnchorElement;
-        if (target.href) {
-          CodeMirror.signal(this.editor,'lsp/open', target.href);
-        }
-      })
-    }
 
     this._showTooltip(wrapper, {
       x: left,
