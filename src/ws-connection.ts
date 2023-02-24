@@ -167,11 +167,13 @@ public sendInitialize() {
       locale: this.documentInfo.locale || 'en',
       preferences: {
         displayPartsForJSDoc: true,
-      }
+      },
+      tsserver: this.documentInfo.tsserver,
     },
     processId: null,
     rootUri: this.documentInfo.rootUri,
     workspaceFolders: null,
+    // workspaceFolders: [{ name: "root", uri: "" }]
   };
 
   this.connection.sendRequest('initialize', message).then((params: lsProtocol.InitializeResult) => {
@@ -187,7 +189,21 @@ public sendInitialize() {
     };
     this.connection.sendNotification('initialized');
     this.connection.sendNotification('workspace/didChangeConfiguration', {
-      settings: {},
+      settings: {
+        implicitProjectConfiguration: {
+          allowJs: true,
+          jsx: 'preserve',
+          checkJs: false,
+          allowSyntheticDefaultImports: true,
+          target: 'esnext',
+          module: 'esnext',
+          moduleResolution: 'node',
+          experimentalDecorators: true,
+        },
+        diagnostics: {
+          ignoredCodes: [],
+        }
+      },
     });
     this.connection.sendNotification('textDocument/didOpen', textDocumentMessage);
     this.sendChange();

@@ -277,6 +277,14 @@ export interface ITextEditorOptions {
   enableHoverInfo?: boolean;
 }
 
+type TSserverOptions = {
+  path?: string;
+  logDirectory?: string;
+  logVerbosity?: string;
+  trace?: string;
+  useSyntaxServer?: string
+}
+
 export interface ILspOptions {
   serverUri: string;
   languageId: string;
@@ -284,6 +292,7 @@ export interface ILspOptions {
   documentText: (() => string);
   rootUri: string;
   locale?: string;
+  tsserver: TSserverOptions
 }
 
 /**
