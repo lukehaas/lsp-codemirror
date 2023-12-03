@@ -133,6 +133,16 @@ public sendInitialize() {
           },
           contextSupport: false,
         },
+        diagnostic: {
+          dynamicRegistration: true,
+          relatedDocumentSupport: false,
+        },
+        publishDiagnostics: {
+          relatedInformation: false,
+          dataSupport: false,
+          codeDescriptionSupport: false,
+          versionSupport: false,
+        },
         signatureHelp: {
           dynamicRegistration: true,
           signatureInformation: {
@@ -159,6 +169,9 @@ public sendInitialize() {
       workspace: {
         didChangeConfiguration: {
           dynamicRegistration: true,
+        },
+        diagnostics: {
+          refreshSupport: false,
         },
       } as lsProtocol.WorkspaceClientCapabilities,
     } as lsProtocol.ClientCapabilities,
