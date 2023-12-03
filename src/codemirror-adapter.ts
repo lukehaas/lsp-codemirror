@@ -198,7 +198,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
             .map(text => `<li class="lsp-inner-li">${text}</li>`)
             .join('');
 
-          const coords = this.editor.charCoords(diagnostic.start, 'local');
+          const coords = this.editor.charCoords(diagnostic.start, 'page');
           const scrollCords = this.editor.getScrollInfo();
           tooltipData.hasData = true;
           tooltipData.x = coords.left - scrollCords.left;
@@ -277,7 +277,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     } else {
       signatureElement.innerText = tooltipText;
     }
-    const coords = this.editor.charCoords(start, 'local');
+    const coords = this.editor.charCoords(start, 'page');
     const scrollCords = this.editor.getScrollInfo();
     const left = coords.left - scrollCords.left;
     const top = coords.top - scrollCords.top;
@@ -503,7 +503,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       el.innerText = item.label;
       htmlElement.appendChild(el);
     });
-    const coords = this.editor.charCoords(this.token.start, 'local');
+    const coords = this.editor.charCoords(this.token.start, 'page');
     const scrollCords = this.editor.getScrollInfo();
     const left = coords.left - scrollCords.left;
     const top = coords.top - scrollCords.top;
@@ -874,7 +874,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     this.tooltip.style.left = `${coords.x}px`;
     this.tooltip.style.top = `${top}px`;
     this.tooltip.appendChild(el);
-    this.editor.getWrapperElement().appendChild(this.tooltip);
+    document.body.appendChild(this.tooltip);
 
     // Measure and reposition after rendering first version
     requestAnimationFrame(() => {
@@ -882,7 +882,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       top -= this.tooltip.offsetHeight;
 
       this.tooltip.style.left = `${coords.x}px`;
-      this.tooltip.style.top = top < 0 ? `${altTop}px` : `${top}px`;
+      this.tooltip.style.top = top < 30 ? `${altTop}px` : `${top}px`;
     });
 
     this.isShowingContextMenu = true;
