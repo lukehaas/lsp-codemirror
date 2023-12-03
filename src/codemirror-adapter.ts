@@ -199,10 +199,10 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
             .join('');
 
           const coords = this.editor.charCoords(diagnostic.start, 'page');
-          const scrollCords = this.editor.getScrollInfo();
+          // const scrollCords = this.editor.getScrollInfo();
           tooltipData.hasData = true;
-          tooltipData.x = coords.left - scrollCords.left;
-          tooltipData.y = coords.top - scrollCords.top;
+          tooltipData.x = coords.left;
+          tooltipData.y = coords.top;
           tooltipData.htmlElement = htmlElement;
         }
       }
@@ -278,9 +278,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       signatureElement.innerText = tooltipText;
     }
     const coords = this.editor.charCoords(start, 'page');
-    const scrollCords = this.editor.getScrollInfo();
-    const left = coords.left - scrollCords.left;
-    const top = coords.top - scrollCords.top;
+    // const scrollCords = this.editor.getScrollInfo();
+    const left = coords.left;
+    const top = coords.top;
 
     if (tooltipData.hasData && tooltipData.x === left && tooltipData.y === top) {
       wrapper.appendChild(tooltipData.htmlElement);
@@ -504,9 +504,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       htmlElement.appendChild(el);
     });
     const coords = this.editor.charCoords(this.token.start, 'page');
-    const scrollCords = this.editor.getScrollInfo();
-    const left = coords.left - scrollCords.left;
-    const top = coords.top - scrollCords.top;
+    // const scrollCords = this.editor.getScrollInfo();
+    const left = coords.left;
+    const top = coords.top;
     this._showTooltip(htmlElement, {
       x: left,
       y: top,
