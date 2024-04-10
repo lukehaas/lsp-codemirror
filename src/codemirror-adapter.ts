@@ -163,6 +163,16 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     }
   }
 
+  public handleTriggerSuggest() {
+    const location = this.editor.getDoc().getCursor('end');
+    this.connection.getCompletion(
+      location,
+      this.token,
+      '',
+      lsProtocol.CompletionTriggerKind.Invoked
+    );
+  }
+
   public handleRefresh() {
     this._removeHover();
     this._removeTooltip();
@@ -589,6 +599,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     this.editor.on('change', changeListener);
     this.editorListeners.change = changeListener;
 
+    const triggerSuggestListener = this.handleTriggerSuggest.bind(this);
+    this.editorListeners.triggerSuggest = triggerSuggestListener;
+
     const self = this;
     this.connectionListeners = {
       hover: this.handleHover.bind(self),
@@ -674,7 +687,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       wordStartChar = i;
     }
     return {
-      text: line.substr(wordStartChar, location.ch),
+      text: line.substring(wordStartChar, location.ch),
       start: {
         line: location.line,
         ch: wordStartChar,
