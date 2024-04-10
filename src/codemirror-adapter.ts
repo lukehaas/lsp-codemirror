@@ -165,11 +165,19 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
   public handleTriggerSuggest() {
     const location = this.editor.getDoc().getCursor('end');
+    const code = this.editor.getValue();
+    const completionCharacters = this.connection.getLanguageCompletionCharacters();
+    const signatureCharacters = this.connection.getLanguageSignatureCharacters();
     this.connection.getCompletion(
       location,
       this.token,
       '',
       lsProtocol.CompletionTriggerKind.Invoked
+    );
+    this.token = this._getTokenEndingAtPosition(
+      code,
+      location,
+      completionCharacters.concat(signatureCharacters)
     );
   }
 
