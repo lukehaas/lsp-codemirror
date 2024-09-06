@@ -202,13 +202,18 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     }
 
     this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
+      const isMultiLine = diagnostic.start.line !== diagnostic.end.line;
       if (
         position.line === diagnostic.start.line ||
-        position.line === diagnostic.end.line
+        position.line === diagnostic.end.line ||
+        (isMultiLine && position.line >= diagnostic.start.line && position.line <= diagnostic.end.line)
       ) {
         if (
-          position.ch >= diagnostic.start.ch &&
-          position.ch <= diagnostic.end.ch
+          (position.ch >= diagnostic.start.ch &&
+          position.ch <= diagnostic.end.ch) || 
+          (isMultiLine && position.line === diagnostic.end.line && position.ch <= diagnostic.end.ch) ||
+          (isMultiLine && position.line === diagnostic.start.line && position.ch >= diagnostic.start.ch) ||
+          (isMultiLine && position.line > diagnostic.start.line && position.line < diagnostic.end.line)
         ) {
           const htmlElement = document.createElement('ul');
           htmlElement.classList.add("lsp-inner");
