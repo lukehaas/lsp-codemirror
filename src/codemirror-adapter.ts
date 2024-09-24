@@ -719,6 +719,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       return [];
     }
     const word = firstWord.toLowerCase();
+    if (canMatchWholeWord && word.length === 0) {
+      return [];
+    }
     return items
       .filter((item: lsProtocol.CompletionItem) => {
         const label = item.label.toLocaleLowerCase();
