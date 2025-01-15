@@ -114,7 +114,7 @@ public sendInitialize() {
       textDocument: {
         hover: {
           dynamicRegistration: true,
-          contentFormat: ['plaintext', 'markdown'],
+          contentFormat: ['markdown'],
         },
         synchronization: {
           dynamicRegistration: true,
