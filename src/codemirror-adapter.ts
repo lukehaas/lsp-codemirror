@@ -381,7 +381,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
           element.append(wrapper);
           if (labelDetails) {
             descriptionText.classList.add('description');
-            descriptionText.innerText = labelDetails as string;
+            descriptionText.innerText = typeof labelDetails === 'string' ?  labelDetails : labelDetails.description || '';
             element.append(descriptionText);
           }
         },
