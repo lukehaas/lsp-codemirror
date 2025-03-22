@@ -387,7 +387,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
         },
         hint: (cm: CodeMirror.Editor, data: any, completion: any) => {
           const text = this._getText(completion);
-          const from = completion.from || data.from
+          const from = completion.from || data.from;
           const { line, ch } = from;
           cm.replaceRange(text.replace(/\$0/g, ''), from, completion.to || data.to, "complete");
 
@@ -399,7 +399,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
               const pos = str.lastIndexOf('$0');
               if (pos > -1) {
                 cursorLine = line + index;
-                cursorCh = pos;
+                cursorCh = ch + pos;
               }
             })
 
