@@ -221,11 +221,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
             .map(text => `<li class="lsp-inner-li">${text}</li>`)
             .join('');
 
-          const coords = this.editor.charCoords(diagnostic.start, 'page');
-          // const scrollCords = this.editor.getScrollInfo();
+          const coords = this.editor.charCoords(diagnostic.start, 'local');
+          const scrollCords = this.editor.getScrollInfo();
+          const gutterWidth = this.editor.getGutterElement().offsetWidth;
           tooltipData.hasData = true;
-          tooltipData.x = coords.left;
-          tooltipData.y = coords.top;
+          tooltipData.x = coords.left - scrollCords.left + gutterWidth;
+          tooltipData.y = coords.top - scrollCords.top;
           tooltipData.htmlElement = htmlElement;
         }
       }
@@ -300,10 +301,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     } else {
       signatureElement.innerText = tooltipText;
     }
-    const coords = this.editor.charCoords(start, 'page');
-    // const scrollCords = this.editor.getScrollInfo();
-    const left = coords.left;
-    const top = coords.top;
+    const coords = this.editor.charCoords(start, 'local');
+    const scrollCords = this.editor.getScrollInfo();
+    const gutterWidth = this.editor.getGutterElement().offsetWidth;
+    const left = coords.left - scrollCords.left + gutterWidth;
+    const top = coords.top - scrollCords.top;
+    console.log('*', coords, scrollCords)
 
     if (tooltipData.hasData && tooltipData.x === left && tooltipData.y === top) {
       wrapper.appendChild(tooltipData.htmlElement);
@@ -526,10 +529,11 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       el.innerText = item.label;
       htmlElement.appendChild(el);
     });
-    const coords = this.editor.charCoords(this.token.start, 'page');
-    // const scrollCords = this.editor.getScrollInfo();
-    const left = coords.left;
-    const top = coords.top;
+    const coords = this.editor.charCoords(this.token.start, 'local');
+    const scrollCords = this.editor.getScrollInfo();
+    const gutterWidth = this.editor.getGutterElement().offsetWidth;
+    const left = coords.left - scrollCords.left + gutterWidth;
+    const top = coords.top - scrollCords.top;
     this._showTooltip(htmlElement, {
       x: left,
       y: top,
@@ -856,7 +860,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
         });
         htmlElement.appendChild(getReferences);
       }
-      const coords = this.editor.charCoords(docPosition, 'page');
+      // const coords = this.editor.charCoords(docPosition, 'local');
       this._showTooltip(htmlElement, {
         x: ev.x - 4,
         y: ev.y + 8,
@@ -903,7 +907,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     this.tooltip.style.left = `${coords.x}px`;
     this.tooltip.style.top = `${top}px`;
     this.tooltip.appendChild(el);
-    document.body.appendChild(this.tooltip);
+    this.editor.getWrapperElement().appendChild(this.tooltip);
 
     // Measure and reposition after rendering first version
     requestAnimationFrame(() => {
