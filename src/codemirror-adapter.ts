@@ -316,7 +316,6 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     const gutterWidth = this.editor.getGutterElement().offsetWidth;
     const left = coords.left - scrollCords.left + gutterWidth;
     const top = coords.top - scrollCords.top;
-    console.log('*', coords, scrollCords)
 
     if (tooltipData.hasData && tooltipData.x === left && tooltipData.y === top) {
       wrapper.appendChild(tooltipData.htmlElement);
