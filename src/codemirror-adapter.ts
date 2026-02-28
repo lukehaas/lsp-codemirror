@@ -186,6 +186,16 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     this._removeTooltip();
   }
 
+  public handleEscape() {
+    this._removeHover();
+    this._removeTooltip();
+    this._removeSignatureWidget();
+    // Close suggestions if open
+    if ((this.editor as any).state.completionActive) {
+      (this.editor as any).closeHint();
+    }
+  }
+
   public handleScrollLeave() {
     this._removeHover();
     this._removeTooltip();
@@ -673,6 +683,9 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     const clickInsideListener = this._handleClickInside.bind(this);
     this.editor.on('focus', clickInsideListener);
     this.documentListeners.clickInside = clickInsideListener;
+
+    const escapeListener = this.handleEscape.bind(this);
+    this.editorListeners.cancel = escapeListener;
   }
 
   private _getTokenEndingAtPosition(
