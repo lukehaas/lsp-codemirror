@@ -201,6 +201,39 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     this._removeTooltip();
   }
 
+  public handleShowHoverInfo() {
+    const position = this.editor.getDoc().getCursor('start');
+    this.hoverCharacter = position;
+    this.connection.getHoverTooltip(position);
+  }
+
+  public handleShowDiagnostics() {
+    const position = this.editor.getDoc().getCursor('start');
+    this._removeHover();
+    this._removeTooltip();
+
+    const matching = this._getDiagnosticsAtPosition(position);
+
+    if (matching.length === 0) {
+      return;
+    }
+
+    const htmlElement = document.createElement('ul');
+    htmlElement.classList.add('lsp-inner');
+    htmlElement.innerHTML = matching
+      .flatMap(d => d.text)
+      .map(text => `<li class="lsp-inner-li">${text}</li>`)
+      .join('');
+
+    const coords = this.editor.charCoords(matching[0].start, 'local');
+    const scrollCords = this.editor.getScrollInfo();
+    const gutterWidth = this.editor.getGutterElement().offsetWidth;
+    this._showTooltip(htmlElement, {
+      x: coords.left - scrollCords.left + gutterWidth,
+      y: coords.top - scrollCords.top,
+    });
+  }
+
   public handleHover(response: lsProtocol.Hover, position: IPosition) {
     this._removeHover();
     this._removeTooltip();
@@ -211,36 +244,24 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       y: 0,
     }
 
-    this.diagnosticResults.forEach((diagnostic: ITokenInfo) => {
-      const isMultiLine = diagnostic.start.line !== diagnostic.end.line;
-      if (
-        position.line === diagnostic.start.line ||
-        position.line === diagnostic.end.line ||
-        (isMultiLine && position.line >= diagnostic.start.line && position.line <= diagnostic.end.line)
-      ) {
-        if (
-          (position.ch >= diagnostic.start.ch &&
-          position.ch <= diagnostic.end.ch) || 
-          (isMultiLine && position.line === diagnostic.end.line && position.ch <= diagnostic.end.ch) ||
-          (isMultiLine && position.line === diagnostic.start.line && position.ch >= diagnostic.start.ch) ||
-          (isMultiLine && position.line > diagnostic.start.line && position.line < diagnostic.end.line)
-        ) {
-          const htmlElement = document.createElement('ul');
-          htmlElement.classList.add("lsp-inner");
-          htmlElement.innerHTML = diagnostic.text
-            .map(text => `<li class="lsp-inner-li">${text}</li>`)
-            .join('');
+    const matchingDiagnostics = this._getDiagnosticsAtPosition(position);
+    if (matchingDiagnostics.length > 0) {
+      const lastDiagnostic = matchingDiagnostics[matchingDiagnostics.length - 1];
+      const htmlElement = document.createElement('ul');
+      htmlElement.classList.add("lsp-inner");
+      htmlElement.innerHTML = matchingDiagnostics
+        .flatMap(d => d.text)
+        .map(text => `<li class="lsp-inner-li">${text}</li>`)
+        .join('');
 
-          const coords = this.editor.charCoords(diagnostic.start, 'local');
-          const scrollCords = this.editor.getScrollInfo();
-          const gutterWidth = this.editor.getGutterElement().offsetWidth;
-          tooltipData.hasData = true;
-          tooltipData.x = coords.left - scrollCords.left + gutterWidth;
-          tooltipData.y = coords.top - scrollCords.top;
-          tooltipData.htmlElement = htmlElement;
-        }
-      }
-    });
+      const coords = this.editor.charCoords(lastDiagnostic.start, 'local');
+      const scrollCords = this.editor.getScrollInfo();
+      const gutterWidth = this.editor.getGutterElement().offsetWidth;
+      tooltipData.hasData = true;
+      tooltipData.x = coords.left - scrollCords.left + gutterWidth;
+      tooltipData.y = coords.top - scrollCords.top;
+      tooltipData.htmlElement = htmlElement;
+    }
 
     if (!this.options.enableHoverInfo || !response || !response.contents || (Array.isArray(response.contents) && response.contents.length === 0)) {
       this._showTooltipWithData(tooltipData);
@@ -685,6 +706,12 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
     const escapeListener = this.handleEscape.bind(this);
     this.editorListeners.cancel = escapeListener;
+
+    const showHoverInfoListener = this.handleShowHoverInfo.bind(this);
+    this.editorListeners.showHoverInfo = showHoverInfoListener;
+
+    const showDiagnosticsListener = this.handleShowDiagnostics.bind(this);
+    this.editorListeners.showDiagnostics = showDiagnosticsListener;
   }
 
   private _getTokenEndingAtPosition(
@@ -955,6 +982,23 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       this.hoverMarker.clear();
       this.hoverMarker = null;
     }
+  }
+
+  private _getDiagnosticsAtPosition(position: IPosition): ITokenInfo[] {
+    return this.diagnosticResults.filter((diagnostic: ITokenInfo) => {
+      const isMultiLine = diagnostic.start.line !== diagnostic.end.line;
+      const onRelevantLine =
+        position.line === diagnostic.start.line ||
+        position.line === diagnostic.end.line ||
+        (isMultiLine && position.line >= diagnostic.start.line && position.line <= diagnostic.end.line);
+      if (!onRelevantLine) return false;
+      return (
+        (position.ch >= diagnostic.start.ch && position.ch <= diagnostic.end.ch) ||
+        (isMultiLine && position.line === diagnostic.end.line && position.ch <= diagnostic.end.ch) ||
+        (isMultiLine && position.line === diagnostic.start.line && position.ch >= diagnostic.start.ch) ||
+        (isMultiLine && position.line > diagnostic.start.line && position.line < diagnostic.end.line)
+      );
+    });
   }
 
   private _unhighlightRanges() {
