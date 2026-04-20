@@ -27,6 +27,11 @@ interface IScreenCoord {
   y: number;
 }
 
+type CancelableListener = (() => void) & { cancel?: () => void };
+type CancelableHoverListener = ((position: IPosition) => void) & {
+  cancel?: () => void;
+};
+
 class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
   public options: ITextEditorOptions;
   public editor: CodeMirror.Editor;
@@ -40,7 +45,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
   private diagnosticResults: ITokenInfo[] = [];
   private highlightMarkers: CodeMirror.TextMarker[] = [];
   private hoverCharacter: IPosition;
-  private debouncedGetHover: (position: IPosition) => void;
+  private debouncedGetHover: CancelableHoverListener;
   private connectionListeners: { [key: string]: () => void } = {};
   private editorListeners: { [key: string]: () => void } = {};
   private documentListeners: { [key: string]: () => void } = {};
@@ -611,6 +616,8 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
   }
 
   public remove() {
+    this.debouncedGetHover.cancel?.();
+    (this.editorListeners.change as CancelableListener | undefined)?.cancel?.();
     this._removeSignatureWidget();
     this._removeHover();
     this._removeTooltip();
@@ -622,9 +629,15 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
       .forEach(e => e.remove());
     this.editor.off('change', this.editorListeners.change);
     this.editor.off('cursorActivity', this.editorListeners.cursorActivity);
+    this.editor.off('refresh', this.editorListeners.refresh);
+    this.editor.off('scroll', this.editorListeners.scroll);
+    this.editor.off('focus', this.documentListeners.clickInside);
     this.editor
       .getWrapperElement()
       .removeEventListener('mousemove', this.editorListeners.mouseover);
+    this.editor
+      .getWrapperElement()
+      .removeEventListener('mouseleave', this.editorListeners.mouseleave);
     if (this.options.enableContextMenu) {
       this.editor
         .getWrapperElement()
@@ -633,9 +646,7 @@ class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
     Object.keys(this.connectionListeners).forEach(key => {
       this.connection.off(key as any, this.connectionListeners[key]);
     });
-    Object.keys(this.documentListeners).forEach(key => {
-      document.removeEventListener(key as any, this.documentListeners[key]);
-    });
+    document.removeEventListener('click', this.documentListeners.clickOutside);
   }
 
   private _addListeners() {

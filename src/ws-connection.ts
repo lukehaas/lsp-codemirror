@@ -81,11 +81,14 @@ class LspWsConnection extends events.EventEmitter implements ILspConnection {
         });
 
         this.connection.onError((e) => {
+          this.isConnected = false;
+          this.isInitialized = false;
           this.emit('logging', e);
         });
 
         this.connection.onClose(() => {
           this.isConnected = false;
+          this.isInitialized = false;
         });
       },
     });
@@ -94,10 +97,14 @@ class LspWsConnection extends events.EventEmitter implements ILspConnection {
   }
 
 public close() {
+  this.isConnected = false;
+  this.isInitialized = false;
   if (this.connection) {
     this.connection.dispose();
   }
-  this.socket.close();
+  if (this.socket) {
+    this.socket.close();
+  }
 }
 
 public getDocumentUri() {
