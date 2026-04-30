@@ -187,6 +187,7 @@ public sendInitialize() {
       locale: this.documentInfo.locale || 'en',
       preferences: {
         displayPartsForJSDoc: true,
+        disableSuggestions: true,
       },
       tsserver: this.documentInfo.tsserver,
     },
